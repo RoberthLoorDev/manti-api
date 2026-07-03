@@ -48,3 +48,11 @@ NestJS utiliza una **Arquitectura en Capas (Layered Architecture)**. Para este p
    * *Mejor práctica:* Aislamos las consultas SQL de la lógica del negocio. Si en el futuro cambiamos a otra base de datos, los servicios no se enteran de este cambio.
 4. **Estructura Modular:**
    * Agruparemos todo por módulos funcionales (ej. `TenantModule`, `SriModule`, `QueueModule`). Cada módulo encapsulará sus propios controladores, servicios y entidades, lo que nos dará alta cohesión y bajo acoplamiento.
+
+---
+
+## 3. Manejo Global de Errores y Excepciones
+
+* **Estandarización JSON:** Todos los errores de la API deben ser formateados y capturados por el `GlobalExceptionFilter`. Nunca devolveremos mensajes de texto sueltos, excepciones nativas de NestJS sin envolver, ni rastros de pila (Stack Traces) al cliente (Principio de Seguridad LOPDP).
+* **Códigos de Error (ErrorCodes):** Cualquier nueva validación o regla de negocio que falle debe arrojar una excepción (ej. `ConflictException`, `BadRequestException`) pasándole como argumento un objeto que contenga el `errorCode` correspondiente del enum `ErrorCode` y un `message` en inglés.
+* **Trazabilidad (Request ID):** La estructura del JSON de error siempre incluirá el `requestId` generado para esa petición para poder rastrear el error técnico (los 500 Internal Server Error) en los logs internos del servidor sin exponer detalles sensibles al cliente.

@@ -2,6 +2,7 @@ import { Injectable, ConflictException, NotFoundException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Tenant } from './tenant.entity';
+import { ErrorCode } from '@common/enums/error-code.enum'; 
 
 @Injectable()
 export class TenantService {
@@ -13,7 +14,10 @@ export class TenantService {
   async create(ruc: string, legalName: string): Promise<Tenant> {
     const existing = await this.findOneByRuc(ruc);
     if (existing) {
-      throw new ConflictException(`Tenant with RUC ${ruc} already exists`);
+      throw new ConflictException({
+        message: `A tenant with RUC ${ruc} already exists.`,
+        errorCode: ErrorCode.TENANT_ALREADY_EXISTS,
+      });
     }
 
     const tenant = this.tenantRepository.create({ ruc, legalName });
@@ -23,7 +27,10 @@ export class TenantService {
   async findOne(id: string): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOneBy({ id });
     if (!tenant) {
-      throw new NotFoundException(`Tenant with ID ${id} not found`);
+      throw new NotFoundException({
+        message: `Tenant with ID ${id} not found.`,
+        errorCode: ErrorCode.TENANT_NOT_FOUND,
+      });
     }
     return tenant;
   }
