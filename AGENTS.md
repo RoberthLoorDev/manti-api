@@ -98,3 +98,30 @@ Son dos piezas simétricas y globales (registradas en `main.ts`), que nunca act�
 ### C. Trazabilidad (Request ID)
 
 Ambos sobres incluyen `requestId`. Se respeta el header `x-request-id` si viene en la petición; si no, se genera uno. Sirve para rastrear una misma petición tanto si termina en éxito como en error, sin exponer detalles sensibles al cliente.
+
+---
+
+## 4. Estado del Proyecto y Próximos Pasos
+
+Registro vivo de en qué punto está la construcción. Actualizar al cerrar cada etapa.
+
+### Hecho
+* **Infraestructura:** NestJS + TypeORM/PostgreSQL + Docker (Postgres, Redis), configuración por `.env`.
+* **Módulo Tenant:** alta / consulta / baja (soft-delete) de emisores, con validación de RUC ecuatoriano (Módulo 10/11).
+* **Manejo de errores:** `GlobalExceptionFilter` + enum `ErrorCode` (ver sección 3).
+* **Respuestas de éxito:** `ResponseInterceptor` global (ver sección 3).
+* **Bóveda criptográfica:** subida de la firma `.p12` cifrada con AES-256-GCM (clave derivada por tenant con scrypt + sal). Endpoint `PATCH /tenants/:id/certificate`.
+* **Clave de acceso SRI:** `AccessKeyGenerator` (49 dígitos + verificador Módulo 11, determinística para idempotencia).
+* **Módulo Invoice:** `POST /invoices` genera la clave de acceso y persiste la factura en estado `PENDIENTE`, con **idempotencia** (clave de acceso `UNIQUE` + manejo de la colisión Postgres `23505`). `GET /invoices/:id`.
+* **Timestamps en UTC:** columnas `timestamptz` + `TZ=UTC` en el proceso Node y los contenedores. La fecha de emisión de la factura se maneja como fecha de negocio (local), aparte.
+
+### Pendiente (nada de esto toca el SRI real hasta el último punto)
+1. **Cálculo de IVA + generación del XML** del comprobante en el formato del SRI. El IVA se calcula en el servidor (nunca se confía en el ERP) y requiere agregar la tarifa por ítem; van juntos porque el XML necesita el desglose de impuestos.
+2. **Firma XAdES-BES** del XML usando el `.p12` descifrado en memoria (`CryptoService.decrypt`).
+3. **Colas BullMQ + worker** para el envío asíncrono y los reintentos con backoff exponencial.
+4. **Transmisión SOAP al SRI** (recepción + autorización), saltable con `MOCK_SRI=true`.
+5. **Generación del RIDE (PDF)** con Carbone.io + LibreOffice.
+6. **Webhooks** de confirmación al ERP.
+
+### Próximo paso
+**(1) Modelo de IVA + generación del XML.** Es la continuación natural del módulo Invoice.
