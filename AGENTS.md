@@ -51,8 +51,50 @@ NestJS utiliza una **Arquitectura en Capas (Layered Architecture)**. Para este p
 
 ---
 
-## 3. Manejo Global de Errores y Excepciones
+## 3. Contrato de Respuesta de la API (Éxito y Error)
 
-* **Estandarización JSON:** Todos los errores de la API deben ser formateados y capturados por el `GlobalExceptionFilter`. Nunca devolveremos mensajes de texto sueltos, excepciones nativas de NestJS sin envolver, ni rastros de pila (Stack Traces) al cliente (Principio de Seguridad LOPDP).
-* **Códigos de Error (ErrorCodes):** Cualquier nueva validación o regla de negocio que falle debe arrojar una excepción (ej. `ConflictException`, `BadRequestException`) pasándole como argumento un objeto que contenga el `errorCode` correspondiente del enum `ErrorCode` y un `message` en inglés.
-* **Trazabilidad (Request ID):** La estructura del JSON de error siempre incluirá el `requestId` generado para esa petición para poder rastrear el error técnico (los 500 Internal Server Error) en los logs internos del servidor sin exponer detalles sensibles al cliente.
+**Regla de oro:** TODA respuesta de la API —exitosa o fallida— sale envuelta en un sobre estándar. El cliente siempre lee primero el campo `success` para decidir cómo parsear. Nunca se devuelven entidades crudas, texto suelto ni Stack Traces.
+
+Son dos piezas simétricas y globales (registradas en `main.ts`), que nunca actúan sobre la misma respuesta:
+
+* Si el código hace `return` (todo bien) → lo envuelve el **`ResponseInterceptor`**.
+* Si el código hace `throw` (falla) → lo envuelve el **`GlobalExceptionFilter`**.
+
+### A. Respuestas exitosas — `ResponseInterceptor`
+
+* **Ubicación:** `src/common/interceptors/response.interceptor.ts` (global).
+* **Nunca** se devuelve la entidad ni el objeto "pelado": el payload real siempre va dentro de `data`.
+* Se aplica automáticamente a todos los endpoints (presentes y futuros); los servicios/controllers no arman este sobre a mano.
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": { "...": "el payload real (entidad, {id, message}, etc.)" },
+  "path": "/tenants/7a18...",
+  "timestamp": "2026-07-10T00:00:00.000Z",
+  "requestId": "..."
+}
+```
+
+### B. Respuestas de error — `GlobalExceptionFilter`
+
+* **Ubicación:** `src/common/filters/global-exception.filter.ts` (global).
+* **Estandarización JSON:** Nunca devolvemos mensajes de texto sueltos, excepciones nativas de NestJS sin envolver, ni Stack Traces al cliente (Principio de Seguridad LOPDP).
+* **Códigos de Error (ErrorCodes):** Cualquier validación o regla de negocio que falle debe arrojar una excepción (ej. `ConflictException`, `BadRequestException`) pasándole un objeto con el `errorCode` correspondiente del enum `ErrorCode` (`src/common/enums/error-code.enum.ts`) y un `message` en inglés. Al agregar una nueva regla de negocio, primero agregá su `errorCode` al enum.
+
+```json
+{
+  "success": false,
+  "statusCode": 409,
+  "errorCode": "TENANT_ALREADY_EXISTS",
+  "message": "A tenant with RUC ... already exists.",
+  "path": "/tenants",
+  "timestamp": "2026-07-10T00:00:00.000Z",
+  "requestId": "..."
+}
+```
+
+### C. Trazabilidad (Request ID)
+
+Ambos sobres incluyen `requestId`. Se respeta el header `x-request-id` si viene en la petición; si no, se genera uno. Sirve para rastrear una misma petición tanto si termina en éxito como en error, sin exponer detalles sensibles al cliente.
