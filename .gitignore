@@ -6,6 +6,8 @@
 # certificados de prueba (.p12) - NUNCA commitear firmas, ni de prueba
 /test-certs
 
+.claude/settings.local.json
+
 # Logs
 logs
 *.log
