@@ -3,6 +3,9 @@
 /node_modules
 /build
 
+# certificados de prueba (.p12) - NUNCA commitear firmas, ni de prueba
+/test-certs
+
 # Logs
 logs
 *.log
