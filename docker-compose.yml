@@ -6,6 +6,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: SecretPassword123!
       POSTGRES_DB: sri_api_db
+      TZ: UTC
+      PGTZ: UTC
     ports:
       - "5432:5432"
     volumes:
@@ -40,6 +42,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - ENCRYPTION_KEY=MiSuperClaveSecretaAES25612345!
       - MOCK_SRI=true
+      - TZ=UTC
     volumes:
       - .:/app                 # Monta el código local dentro del contenedor para Hot-Reload
       - /app/node_modules      # Evita que el node_modules local sobrescriba al del contenedor
