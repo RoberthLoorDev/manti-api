@@ -114,9 +114,10 @@ Registro vivo de en qué punto está la construcción. Actualizar al cerrar cada
 * **Clave de acceso SRI:** `AccessKeyGenerator` (49 dígitos + verificador Módulo 11, determinística para idempotencia).
 * **Módulo Invoice:** `POST /invoices` genera la clave de acceso y persiste la factura en estado `PENDIENTE`, con **idempotencia** (clave de acceso `UNIQUE` + manejo de la colisión Postgres `23505`). `GET /invoices/:id`.
 * **Timestamps en UTC:** columnas `timestamptz` + `TZ=UTC` en el proceso Node y los contenedores. La fecha de emisión de la factura se maneja como fecha de negocio (local), aparte.
+* **Cálculo de IVA en Servidor:** Implementación de enums oficiales del SRI (`TaxCode`, `IvaRateCode`, `IVA_RATES_MAP`), actualización del DTO de entrada y base de datos con columnas `subtotal` e `iva`, y lógica en `InvoiceService` para calcular los impuestos de forma segura en el backend.
 
 ### Pendiente (nada de esto toca el SRI real hasta el último punto)
-1. **Cálculo de IVA + generación del XML** del comprobante en el formato del SRI. El IVA se calcula en el servidor (nunca se confía en el ERP) y requiere agregar la tarifa por ítem; van juntos porque el XML necesita el desglose de impuestos.
+1. **Generación del XML** del comprobante en el formato del SRI. El XML requiere estructurar el comprobante con los subtotales, impuestos desglosados e información del emisor/comprador.
 2. **Firma XAdES-BES** del XML usando el `.p12` descifrado en memoria (`CryptoService.decrypt`).
 3. **Colas BullMQ + worker** para el envío asíncrono y los reintentos con backoff exponencial.
 4. **Transmisión SOAP al SRI** (recepción + autorización), saltable con `MOCK_SRI=true`.
@@ -124,4 +125,4 @@ Registro vivo de en qué punto está la construcción. Actualizar al cerrar cada
 6. **Webhooks** de confirmación al ERP.
 
 ### Próximo paso
-**(1) Modelo de IVA + generación del XML.** Es la continuación natural del módulo Invoice.
+**(1) Generación del XML** en el formato del SRI. Es la continuación natural tras definir los impuestos y montos de la factura.

@@ -8,6 +8,7 @@ import { InvoiceStatus } from './invoice-status.enum';
 import { TenantService } from '@modules/tenant/tenant.service';
 import { AccessKeyGenerator } from '@common/generators/access-key.generator';
 import { ErrorCode } from '@common/enums/error-code.enum';
+import { IVA_RATES_MAP } from '@common/enums/sri.enum';
 
 @Injectable()
 export class InvoiceService {
@@ -18,7 +19,7 @@ export class InvoiceService {
     private readonly invoiceRepository: Repository<Invoice>,
     private readonly tenantService: TenantService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async create(dto: CreateInvoiceDto): Promise<Invoice> {
     const tenant = await this.tenantService.findOne(dto.tenantId);
@@ -38,16 +39,40 @@ export class InvoiceService {
       numericCode: this.buildNumericCode(dto.sequential),
     });
 
-    const existing = await this.invoiceRepository.findOne({ where: { claveAcceso } });
+    const existing = await this.invoiceRepository.findOne({
+      where: { claveAcceso },
+    });
     if (existing) {
       return existing;
     }
 
-    const items: InvoiceItem[] = dto.items.map((item) => ({
-      ...item,
-      total: this.round(item.quantity * item.unitPrice),
-    }));
-    const total = this.round(items.reduce((acc, item) => acc + item.total, 0));
+    let globalSubtotal = 0;
+    let globalIva = 0;
+
+    const items: InvoiceItem[] = dto.items.map((item) => {
+      const subtotal = this.round(item.quantity * item.unitPrice);
+      const ivaTariff = IVA_RATES_MAP[item.ivaRateCode];
+      const ivaValue = this.round(subtotal * (ivaTariff / 100));
+      const total = this.round(subtotal + ivaValue);
+
+      globalSubtotal += subtotal;
+      globalIva += ivaValue;
+
+      return {
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        ivaRateCode: item.ivaRateCode,
+        ivaTariff,
+        ivaValue,
+        subtotal,
+        total,
+      };
+    });
+
+    globalSubtotal = this.round(globalSubtotal);
+    globalIva = this.round(globalIva);
+    const globalTotal = this.round(globalSubtotal + globalIva);
 
     const invoice = this.invoiceRepository.create({
       tenantId: tenant.id,
@@ -60,7 +85,9 @@ export class InvoiceService {
       buyerIdentification: dto.buyerIdentification,
       buyerName: dto.buyerName,
       items,
-      total: total.toFixed(2),
+      subtotal: globalSubtotal.toFixed(2),
+      iva: globalIva.toFixed(2),
+      total: globalTotal.toFixed(2),
       estado: InvoiceStatus.PENDIENTE,
     });
 
@@ -78,6 +105,7 @@ export class InvoiceService {
         }
       }
       throw err;
+      
     }
   }
 

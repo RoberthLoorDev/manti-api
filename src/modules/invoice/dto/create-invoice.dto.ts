@@ -11,7 +11,9 @@ import {
   ValidateNested,
   IsNumber,
   Min,
+  IsEnum,
 } from 'class-validator';
+import { IvaRateCode } from '@common/enums/sri.enum';
 
 class InvoiceItemDto {
   @IsString()
@@ -25,6 +27,12 @@ class InvoiceItemDto {
   @IsNumber()
   @Min(0)
   unitPrice!: number;
+
+  @IsEnum(IvaRateCode, {
+    message:
+      'ivaRateCode debe ser un código de porcentaje de IVA del SRI válido',
+  })
+  ivaRateCode!: IvaRateCode;
 }
 
 export class CreateInvoiceDto {
