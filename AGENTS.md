@@ -116,13 +116,13 @@ Registro vivo de en qué punto está la construcción. Actualizar al cerrar cada
 * **Timestamps en UTC:** columnas `timestamptz` + `TZ=UTC` en el proceso Node y los contenedores. La fecha de emisión de la factura se maneja como fecha de negocio (local), aparte.
 * **Cálculo de IVA en Servidor:** Implementación de enums oficiales del SRI (`TaxCode`, `IvaRateCode`, `IVA_RATES_MAP`), actualización del DTO de entrada y base de datos con columnas `subtotal` e `iva`, y lógica en `InvoiceService` para calcular los impuestos de forma segura en el backend.
 * **Generación de XML del SRI:** Creación del servicio `SriXmlService` para estructurar la factura bajo el formato oficial del SRI, mapeando dinámicamente datos del emisor, tipos de identificación del comprador y agrupando impuestos por tarifa (IVA). El XML generado se almacena en disco y su ruta se guarda en base de datos.
+* **Firma XAdES-BES del XML:** Creación de `SriSignatureService` que descifra la firma `.p12` del tenant en memoria de forma segura y firma digitalmente el XML usando la librería `ec-sri-invoice-signer`.
 
 ### Pendiente (nada de esto toca el SRI real hasta el último punto)
-1. **Firma XAdES-BES** del XML usando el `.p12` descifrado en memoria (`CryptoService.decrypt`).
-2. **Colas BullMQ + worker** para el envío asíncrono y los reintentos con backoff exponencial.
-3. **Transmisión SOAP al SRI** (recepción + autorización), saltable con `MOCK_SRI=true`.
-4. **Generación del RIDE (PDF)** con Carbone.io + LibreOffice.
-5. **Webhooks** de confirmación al ERP.
+1. **Colas BullMQ + worker** para el envío asíncrono y los reintentos con backoff exponencial.
+2. **Transmisión SOAP al SRI** (recepción + autorización), saltable con `MOCK_SRI=true`.
+3. **Generación del RIDE (PDF)** con Carbone.io + LibreOffice.
+4. **Webhooks** de confirmación al ERP.
 
 ### Próximo paso
-**(1) Firma XAdES-BES** del XML usando el `.p12` descifrado en memoria. Es la continuación natural del módulo de facturas para dar inicio al firmado oficial.
+**(1) Colas BullMQ + worker** para el envío asíncrono de comprobantes y reintentos ante caídas del SRI.

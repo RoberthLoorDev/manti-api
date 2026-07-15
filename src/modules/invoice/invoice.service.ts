@@ -10,6 +10,7 @@ import { AccessKeyGenerator } from '@common/generators/access-key.generator';
 import { ErrorCode } from '@common/enums/error-code.enum';
 import { IVA_RATES_MAP } from '@common/enums/sri.enum';
 import { SriXmlService } from './sri-xml.service';
+import { SriSignatureService } from './sri-signature.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -23,6 +24,7 @@ export class InvoiceService {
     private readonly tenantService: TenantService,
     private readonly configService: ConfigService,
     private readonly sriXmlService: SriXmlService,
+    private readonly sriSignatureService: SriSignatureService,
   ) { }
 
   async create(dto: CreateInvoiceDto): Promise<Invoice> {
@@ -46,63 +48,70 @@ export class InvoiceService {
     const existing = await this.invoiceRepository.findOne({
       where: { claveAcceso },
     });
-    if (existing) {
+    if (existing && existing.xmlFilename) {
       return existing;
     }
 
-    let globalSubtotal = 0;
-    let globalIva = 0;
+    let invoice = existing;
+    if (!invoice) {
+      let globalSubtotal = 0;
+      let globalIva = 0;
 
-    const items: InvoiceItem[] = dto.items.map((item) => {
-      const subtotal = this.round(item.quantity * item.unitPrice);
-      const ivaTariff = IVA_RATES_MAP[item.ivaRateCode];
-      const ivaValue = this.round(subtotal * (ivaTariff / 100));
-      const total = this.round(subtotal + ivaValue);
+      const items: InvoiceItem[] = dto.items.map((item) => {
+        const subtotal = this.round(item.quantity * item.unitPrice);
+        const ivaTariff = IVA_RATES_MAP[item.ivaRateCode];
+        const ivaValue = this.round(subtotal * (ivaTariff / 100));
+        const total = this.round(subtotal + ivaValue);
 
-      globalSubtotal += subtotal;
-      globalIva += ivaValue;
+        globalSubtotal += subtotal;
+        globalIva += ivaValue;
 
-      return {
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        ivaRateCode: item.ivaRateCode,
-        ivaTariff,
-        ivaValue,
-        subtotal,
-        total,
-      };
-    });
+        return {
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          ivaRateCode: item.ivaRateCode,
+          ivaTariff,
+          ivaValue,
+          subtotal,
+          total,
+        };
+      });
 
-    globalSubtotal = this.round(globalSubtotal);
-    globalIva = this.round(globalIva);
-    const globalTotal = this.round(globalSubtotal + globalIva);
+      globalSubtotal = this.round(globalSubtotal);
+      globalIva = this.round(globalIva);
+      const globalTotal = this.round(globalSubtotal + globalIva);
 
-    const invoice = this.invoiceRepository.create({
-      tenantId: tenant.id,
-      claveAcceso,
-      environment,
-      establishment,
-      emissionPoint,
-      sequential: dto.sequential,
-      issueDate: dto.issueDate.slice(0, 10),
-      buyerIdentification: dto.buyerIdentification,
-      buyerName: dto.buyerName,
-      items,
-      subtotal: globalSubtotal.toFixed(2),
-      iva: globalIva.toFixed(2),
-      total: globalTotal.toFixed(2),
-      estado: InvoiceStatus.PENDIENTE,
-    });
+      invoice = this.invoiceRepository.create({
+        tenantId: tenant.id,
+        claveAcceso,
+        environment,
+        establishment,
+        emissionPoint,
+        sequential: dto.sequential,
+        issueDate: dto.issueDate.slice(0, 10),
+        buyerIdentification: dto.buyerIdentification,
+        buyerName: dto.buyerName,
+        items,
+        subtotal: globalSubtotal.toFixed(2),
+        iva: globalIva.toFixed(2),
+        total: globalTotal.toFixed(2),
+        estado: InvoiceStatus.PENDIENTE,
+      });
+    }
 
     try {
       const savedInvoice = await this.invoiceRepository.save(invoice);
 
       const xmlContent = this.sriXmlService.generate(savedInvoice, tenant);
+
+      // Firma digital del XML bajo el estándar XAdES-BES utilizando la firma .p12 del tenant
+      const signedXmlContent = this.sriSignatureService.sign(xmlContent, tenant);
+
       const storageDir = path.join(process.cwd(), 'storage', 'xmls');
       fs.mkdirSync(storageDir, { recursive: true });
       const filename = `${savedInvoice.claveAcceso}.xml`;
-      fs.writeFileSync(path.join(storageDir, filename), xmlContent, 'utf8');
+      fs.writeFileSync(path.join(storageDir, filename), signedXmlContent, 'utf8');
 
       savedInvoice.xmlFilename = filename;
       return await this.invoiceRepository.save(savedInvoice);
@@ -132,19 +141,11 @@ export class InvoiceService {
     return invoice;
   }
 
-  /**
-   * El código numérico debe ser determinístico para preservar la idempotencia
-   * de la clave de acceso: lo derivamos del secuencial en lugar de generarlo al
-   * azar, así la misma factura produce siempre la misma clave.
-   */
+
   private buildNumericCode(sequential: string): string {
     return sequential.slice(-8).padStart(8, '0');
   }
 
-  /**
-   * Construye la fecha usando componentes locales (no UTC) para que el día no se
-   * corra al formatear la clave de acceso en zonas horarias como la de Ecuador.
-   */
   private parseLocalDate(isoDate: string): Date {
     const [year, month, day] = isoDate.slice(0, 10).split('-').map(Number);
     return new Date(year, month - 1, day);

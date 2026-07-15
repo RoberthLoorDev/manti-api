@@ -9,6 +9,6 @@ import { CryptoService } from '@common/services/crypto.service';
   imports: [TypeOrmModule.forFeature([Tenant])],
   controllers: [TenantController],
   providers: [TenantService, CryptoService],
-  exports: [TypeOrmModule, TenantService],
+  exports: [TypeOrmModule, TenantService, CryptoService],
 })
 export class TenantModule {}
