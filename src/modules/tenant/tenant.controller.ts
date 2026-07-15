@@ -9,7 +9,7 @@ export class TenantController {
 
   @Post()
   create(@Body() createTenantDto: CreateTenantDto) {
-    return this.tenantService.create(createTenantDto.ruc, createTenantDto.legalName);
+    return this.tenantService.create(createTenantDto);
   }
 
   @Get(':id')

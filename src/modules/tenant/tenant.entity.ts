@@ -18,6 +18,15 @@ export class Tenant {
   @Column({ name: 'legal_name' })
   legalName!: string;
 
+  @Column({ name: 'trade_name', type: 'varchar', nullable: true })
+  tradeName!: string | null;
+
+  @Column({ name: 'address', type: 'varchar', default: 'Av. Principal' })
+  address!: string;
+
+  @Column({ name: 'obliged_to_keep_accounting', type: 'boolean', default: false })
+  obligedToKeepAccounting!: boolean;
+
   @Column({ name: 'certificate_base64', type: 'text', nullable: true })
   certificateBase64!: string | null;
 

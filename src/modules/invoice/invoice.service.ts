@@ -9,6 +9,9 @@ import { TenantService } from '@modules/tenant/tenant.service';
 import { AccessKeyGenerator } from '@common/generators/access-key.generator';
 import { ErrorCode } from '@common/enums/error-code.enum';
 import { IVA_RATES_MAP } from '@common/enums/sri.enum';
+import { SriXmlService } from './sri-xml.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class InvoiceService {
@@ -19,6 +22,7 @@ export class InvoiceService {
     private readonly invoiceRepository: Repository<Invoice>,
     private readonly tenantService: TenantService,
     private readonly configService: ConfigService,
+    private readonly sriXmlService: SriXmlService,
   ) { }
 
   async create(dto: CreateInvoiceDto): Promise<Invoice> {
@@ -92,7 +96,16 @@ export class InvoiceService {
     });
 
     try {
-      return await this.invoiceRepository.save(invoice);
+      const savedInvoice = await this.invoiceRepository.save(invoice);
+
+      const xmlContent = this.sriXmlService.generate(savedInvoice, tenant);
+      const storageDir = path.join(process.cwd(), 'storage', 'xmls');
+      fs.mkdirSync(storageDir, { recursive: true });
+      const filename = `${savedInvoice.claveAcceso}.xml`;
+      fs.writeFileSync(path.join(storageDir, filename), xmlContent, 'utf8');
+
+      savedInvoice.xmlFilename = filename;
+      return await this.invoiceRepository.save(savedInvoice);
     } catch (err) {
       // 23505 = unique_violation de Postgres. Cubre la carrera en la que dos
       // peticiones idénticas (mismo comprobante) intentan insertar a la vez:
@@ -105,7 +118,6 @@ export class InvoiceService {
         }
       }
       throw err;
-      
     }
   }
 

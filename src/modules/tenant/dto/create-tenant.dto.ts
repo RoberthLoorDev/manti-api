@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean } from 'class-validator';
 import { IsEcuadorianRuc } from '../../../common/decorators/is-ecuadorian-ruc.decorator';
 
 export class CreateTenantDto {
@@ -10,4 +10,16 @@ export class CreateTenantDto {
   @IsString()
   @IsNotEmpty()
   legalName!: string;
+
+  @IsString()
+  @IsOptional()
+  tradeName?: string;
+
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  obligedToKeepAccounting?: boolean;
 }

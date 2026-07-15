@@ -5,6 +5,7 @@ import { Tenant } from './tenant.entity';
 import { ErrorCode } from '@common/enums/error-code.enum';
 import { CryptoService } from '@common/services/crypto.service';
 import { UpdateCertificateDto } from './dto/update-certificate.dto';
+import { CreateTenantDto } from './dto/create-tenant.dto';
 
 @Injectable()
 export class TenantService {
@@ -14,16 +15,16 @@ export class TenantService {
     private readonly cryptoService: CryptoService,
   ) {}
 
-  async create(ruc: string, legalName: string): Promise<Tenant> {
-    const existing = await this.findOneByRuc(ruc);
+  async create(dto: CreateTenantDto): Promise<Tenant> {
+    const existing = await this.findOneByRuc(dto.ruc);
     if (existing) {
       throw new ConflictException({
-        message: `A tenant with RUC ${ruc} already exists.`,
+        message: `A tenant with RUC ${dto.ruc} already exists.`,
         errorCode: ErrorCode.TENANT_ALREADY_EXISTS,
       });
     }
 
-    const tenant = this.tenantRepository.create({ ruc, legalName });
+    const tenant = this.tenantRepository.create(dto);
     return this.tenantRepository.save(tenant);
   }
 
