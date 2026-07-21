@@ -118,11 +118,11 @@ Registro vivo de en qué punto está la construcción. Actualizar al cerrar cada
 * **Generación de XML del SRI:** Creación del servicio `SriXmlService` para estructurar la factura bajo el formato oficial del SRI, mapeando dinámicamente datos del emisor, tipos de identificación del comprador y agrupando impuestos por tarifa (IVA). El XML generado se almacena en disco y su ruta se guarda en base de datos.
 * **Firma XAdES-BES del XML:** Creación de `SriSignatureService` que descifra la firma `.p12` del tenant en memoria de forma segura y firma digitalmente el XML usando la librería `ec-sri-invoice-signer`.
 * **Colas BullMQ + Worker:** Integración de `@nestjs/bullmq` conectado a Redis. Configuración de `invoice-queue`, despacho de trabajos asíncronos con reintentos y *backoff exponencial*, y `InvoiceProcessor` para transiciones de estado (`PENDIENTE` -> `AUTORIZADA` / `PENDIENTE_CONTINGENCIA`).
+* **Transmisión SOAP al SRI:** Creación de `SriSoapService` para gestionar las dos fases del SRI (Recepción y Autorización) mediante HTTP POST con sobres SOAP estandarizados. Cuenta con soporte de `MOCK_SRI=true` para simulación ultrarrápida local y consumo real de las URLs oficiales del SRI en Pruebas y Producción.
 
 ### Pendiente (nada de esto toca el SRI real hasta el último punto)
-1. **Transmisión SOAP al SRI** (recepción + autorización), saltable con `MOCK_SRI=true`.
-2. **Generación del RIDE (PDF)** con Carbone.io + LibreOffice.
-3. **Webhooks** de confirmación al ERP.
+1. **Generación del RIDE (PDF)** con Carbone.io + LibreOffice.
+2. **Webhooks** de confirmación al ERP.
 
 ### Próximo paso
-**(1) Transmisión SOAP al SRI** (Recepción y Autorización) con soporte de `MOCK_SRI=true` para pruebas locales ilimitadas.
+**(1) Generación del RIDE (PDF)** utilizando Carbone.io + LibreOffice a partir de plantillas dinámicas `.docx` personalizables por Tenant.
