@@ -9,11 +9,13 @@ import { SriSignatureService } from './sri-signature.service';
 import { InvoiceProcessor } from './invoice.processor';
 import { SriSoapService } from './sri-soap.service';
 import { TenantModule } from '@modules/tenant/tenant.module';
+import { PdfModule } from '../pdf/pdf.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Invoice]),
     TenantModule,
+    PdfModule,
     BullModule.registerQueue({
       name: 'invoice-queue',
     }),

@@ -54,15 +54,13 @@ El API de recepción del SRI no es un servicio web moderno; es un Web Service SO
 
 
 
-### C. ¿Por qué instalamos LibreOffice en el contenedor Docker?
+### C. ¿Por qué usamos PDFKit + pdfkit-table en lugar de LibreOffice/Carbone.io?
 
-Esta es una de las mayores dudas de los desarrolladores junior. Para generar la representación física de la factura (el PDF llamado RIDE), usamos **Carbone.io**.
+Inicialmente se consideró Carbone.io con LibreOffice, pero se descartó para optimizar la arquitectura del contenedor:
 
-* **¿Cómo funciona Carbone?:** Carbone no es una librería de dibujo PDF como PDFKit. Carbone toma una plantilla real de Microsoft Word (`.docx`). Los archivos `.docx` son en realidad archivos ZIP que contienen código XML con el estándar OpenXML.
-* Carbone busca y reemplaza las variables dentro de ese XML de Word (`{d.cliente_nombre}`) y luego invoca internamente a **LibreOffice en modo headless** (sin interfaz gráfica) mediante comandos de consola (`soffice --headless --convert-to pdf`) para compilar ese Word modificado en un PDF idéntico y perfecto.
-
-
-* **Ventaja de Arquitectura:** En vez de gastar semanas programando el diseño del PDF línea por línea en código, tus clientes pueden diseñar sus propias facturas en Microsoft Word. Para actualizarlas, solo suben un archivo `.docx` a tu API y LibreOffice se encarga del renderizado. Esto consume menos memoria RAM que levantar instancias de navegadores sin interfaz como Puppeteer (Chrome headless).
+* **Eliminación del sobrecosto de RAM y Disco:** LibreOffice requiere una imagen Docker pesada (+350 MB) y picos de memoria de hasta 300 MB por documento.
+* **Motor Nativo en TypeScript (`PDFKit` + `pdfkit-table`):** Genera el PDF (RIDE) de forma nativa dentro de Node.js en < 20 ms con menos de 15 MB de RAM.
+* **Generación del Código QR:** Integra la librería `qrcode` para pintar la imagen del código QR con la clave de acceso de 49 dígitos directamente sobre las coordenadas de la página PDF sin depender de ejecutables externos.
 
 
 

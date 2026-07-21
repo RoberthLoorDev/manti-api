@@ -7,6 +7,8 @@ import { Invoice } from './invoice.entity';
 import { InvoiceStatus } from './invoice-status.enum';
 
 import { SriSoapService } from './sri-soap.service';
+import { PdfGeneratorService } from '../pdf/pdf-generator.service';
+import { TenantService } from '@modules/tenant/tenant.service';
 
 export interface InvoiceJobData {
   invoiceId: string;
@@ -20,7 +22,9 @@ export class InvoiceProcessor extends WorkerHost {
   constructor(
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
+    private readonly tenantService: TenantService,
     private readonly sriSoapService: SriSoapService,
+    private readonly pdfGeneratorService: PdfGeneratorService,
   ) {
     super();
   }
@@ -43,6 +47,10 @@ export class InvoiceProcessor extends WorkerHost {
         invoice.estado = InvoiceStatus.AUTORIZADA;
         await this.invoiceRepository.save(invoice);
         this.logger.log(`[Job ${job.id}] Factura ${claveAcceso} autorizada exitosamente.`);
+
+        // generate PDF RIDE
+        const tenant = await this.tenantService.findOne(invoice.tenantId);
+        await this.pdfGeneratorService.generateRidePdf(invoice, tenant);
       } else if (result.estado === 'RECHAZADA') {
         invoice.estado = InvoiceStatus.RECHAZADA;
         await this.invoiceRepository.save(invoice);

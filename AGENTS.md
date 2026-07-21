@@ -119,10 +119,10 @@ Registro vivo de en qué punto está la construcción. Actualizar al cerrar cada
 * **Firma XAdES-BES del XML:** Creación de `SriSignatureService` que descifra la firma `.p12` del tenant en memoria de forma segura y firma digitalmente el XML usando la librería `ec-sri-invoice-signer`.
 * **Colas BullMQ + Worker:** Integración de `@nestjs/bullmq` conectado a Redis. Configuración de `invoice-queue`, despacho de trabajos asíncronos con reintentos y *backoff exponencial*, y `InvoiceProcessor` para transiciones de estado (`PENDIENTE` -> `AUTORIZADA` / `PENDIENTE_CONTINGENCIA`).
 * **Transmisión SOAP al SRI:** Creación de `SriSoapService` para gestionar las dos fases del SRI (Recepción y Autorización) mediante HTTP POST con sobres SOAP estandarizados. Cuenta con soporte de `MOCK_SRI=true` para simulación ultrarrápida local y consumo real de las URLs oficiales del SRI en Pruebas y Producción.
+* **Generación del RIDE (PDF):** Creación del módulo `PdfModule` con `PdfGeneratorService` y la plantilla `InvoiceRideTemplate` basada en PDFKit nativo. Genera el PDF RIDE con código QR del SRI en `storage/pdfs/` tras la autorización asíncrona. (Nota: Diseñado para extender en el futuro la subida de logotipo y paleta de colores dinámicos por Tenant).
 
 ### Pendiente (nada de esto toca el SRI real hasta el último punto)
-1. **Generación del RIDE (PDF)** con Carbone.io + LibreOffice.
-2. **Webhooks** de confirmación al ERP.
+1. **Webhooks** de confirmación al ERP.
 
 ### Próximo paso
-**(1) Generación del RIDE (PDF)** utilizando Carbone.io + LibreOffice a partir de plantillas dinámicas `.docx` personalizables por Tenant.
+**(1) Webhooks** para notificar de forma asíncrona al ERP del cliente cuando una factura cambia a estado `AUTORIZADA` o `RECHAZADA`.
