@@ -12,6 +12,7 @@ import {
   IsNumber,
   Min,
   IsEnum,
+  IsEmail,
 } from 'class-validator';
 import { IvaRateCode } from '@common/enums/sri.enum';
 
@@ -60,6 +61,10 @@ export class CreateInvoiceDto {
   @IsString()
   @IsNotEmpty()
   buyerName!: string;
+
+  @IsOptional()
+  @IsEmail({}, { message: 'El correo del comprador debe ser una dirección de email válida.' })
+  buyerEmail?: string;
 
   @IsArray()
   @ArrayMinSize(1)

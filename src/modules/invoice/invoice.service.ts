@@ -137,6 +137,7 @@ export class InvoiceService {
       issueDate: dto.issueDate.slice(0, 10),
       buyerIdentification: dto.buyerIdentification,
       buyerName: dto.buyerName,
+      buyerEmail: dto.buyerEmail,
       items,
       subtotal: globalSubtotal.toFixed(2),
       iva: globalIva.toFixed(2),

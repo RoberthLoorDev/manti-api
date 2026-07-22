@@ -59,6 +59,9 @@ export class Invoice {
   @Column({ name: 'buyer_name' })
   buyerName!: string;
 
+  @Column({ name: 'buyer_email', type: 'varchar', nullable: true })
+  buyerEmail?: string | null;
+
   @Column({ type: 'jsonb' })
   items!: InvoiceItem[];
 

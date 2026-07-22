@@ -41,7 +41,8 @@ export class InvoiceRideTemplate {
       .text(`ESTADO: ${invoice.estado}`, 310, 145);
 
     // --- 3. BLOQUE COMPRADOR ---
-    doc.rect(30, 180, 535, 45).stroke();
+    const buyerBlockHeight = invoice.buyerEmail ? 60 : 45;
+    doc.rect(30, 180, 535, buyerBlockHeight).stroke();
 
     doc
       .fontSize(8)
@@ -58,8 +59,16 @@ export class InvoiceRideTemplate {
       .font('Helvetica')
       .text(invoice.issueDate);
 
+    if (invoice.buyerEmail) {
+      doc
+        .font('Helvetica-Bold')
+        .text(`Correo Electrónico: `, 35, 217, { continued: true })
+        .font('Helvetica')
+        .text(invoice.buyerEmail);
+    }
+
     // --- 4. TABLA DE DETALLES (RIDE Estandarizado) ---
-    let y = 235;
+    let y = 180 + buyerBlockHeight + 10;
 
     // Encabezado de la Tabla
     doc.rect(30, y, 535, 20).fillAndStroke('#e0e0e0', '#000000');

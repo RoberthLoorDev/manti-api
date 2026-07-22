@@ -9,16 +9,27 @@ export class SriXmlService {
     const infoTributaria = this.buildInfoTributaria(invoice, tenant);
     const infoFactura = this.buildInfoFactura(invoice, tenant);
     const detalles = this.buildDetalles(invoice);
+    const infoAdicional = this.buildInfoAdicional(invoice);
 
     return `<?xml version="1.0" encoding="UTF-8"?>
       <factura id="comprobante" version="1.1.0">
       ${infoTributaria}
       ${infoFactura}
       ${detalles}
+      ${infoAdicional}
       </factura>`.trim();
-        }
+  }
 
-        private buildInfoTributaria(invoice: Invoice, tenant: Tenant): string {
+  private buildInfoAdicional(invoice: Invoice): string {
+    if (!invoice.buyerEmail) {
+      return '';
+    }
+    return `  <infoAdicional>
+                <campoAdicional nombre="Email">${this.escapeXml(invoice.buyerEmail)}</campoAdicional>
+              </infoAdicional>`;
+  }
+
+  private buildInfoTributaria(invoice: Invoice, tenant: Tenant): string {
           const tradeNameElement = tenant.tradeName
             ? `<nombreComercial>${this.escapeXml(tenant.tradeName)}</nombreComercial>`
             : '';
